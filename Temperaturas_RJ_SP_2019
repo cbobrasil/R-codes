@@ -1,0 +1,134 @@
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(lubridate)
+
+#IMPORTAÇÃO DE DADOS
+rj.data <- read.csv("INMET_SE_RJ_A652_RIO DE JANEIRO - FORTE DE COPACABANA_01-01-2019_A_31-12-2019.csv",  header = TRUE, sep = ';')
+sp.data <- read.csv("INMET_SE_SP_A771_SAO PAULO - INTERLAGOS_01-01-2019_A_31-12-2019.csv",  header = TRUE, sep = ';')
+
+#TRATAMENTO DE DADOS
+names(rj.data)[2] <- "hora"
+names(rj.data)[3] <- "chuva"
+names(rj.data)[4] <- "pressao"
+names(rj.data)[5] <- "pressao_max"
+names(rj.data)[6] <- "pressao_min"
+names(rj.data)[7] <- "radiacao"
+names(rj.data)[8] <- "temp_ar"
+names(rj.data)[9] <- "temp_orvalho"
+names(rj.data)[10] <- "temp_max"
+names(rj.data)[11] <- "temp_min"
+names(rj.data)[12] <- "temp_orvalho_max"
+names(rj.data)[13] <- "temp_orvalho_min"
+names(rj.data)[14] <- "umidade_rel_max"
+names(rj.data)[15] <- "umidade_rel_min"
+names(rj.data)[16] <- "umidade_rel"
+names(rj.data)[17] <- "vento_dir"
+names(rj.data)[18] <- "vento_rajada"
+names(rj.data)[19] <- "vento_vel"
+
+str(sp.data)
+names(sp.data)[2] <- "hora"
+names(sp.data)[3] <- "chuva"
+names(sp.data)[4] <- "pressao"
+names(sp.data)[5] <- "pressao_max"
+names(sp.data)[6] <- "pressao_min"
+names(sp.data)[7] <- "radiacao"
+names(sp.data)[8] <- "temp_ar"
+names(sp.data)[9] <- "temp_orvalho"
+names(sp.data)[10] <- "temp_max"
+names(sp.data)[11] <- "temp_min"
+names(sp.data)[12] <- "temp_orvalho_max"
+names(sp.data)[13] <- "temp_orvalho_min"
+names(sp.data)[14] <- "umidade_rel_max"
+names(sp.data)[15] <- "umidade_rel_min"
+names(sp.data)[16] <- "umidade_rel"
+names(sp.data)[17] <- "vento_dir"
+names(sp.data)[18] <- "vento_rajada"
+names(sp.data)[19] <- "vento_vel"
+
+
+
+rj.data$pressao <- NULL
+rj.data$pressao_max <- NULL
+rj.data$pressao_min <- NULL
+rj.data$radiacao <- NULL
+rj.data$temp_orvalho <- NULL
+rj.data$temp_orvalho_max <- NULL
+rj.data$temp_orvalho_min <- NULL
+rj.data$umidade_rel <- NULL
+rj.data$vento_dir <- NULL
+rj.data$vento_rajada <- NULL
+rj.data$vento_vel <- NULL
+rj.data$X <- NULL
+
+
+sp.data$pressao <- NULL
+sp.data$pressao_max <- NULL
+sp.data$pressao_min <- NULL
+sp.data$radiacao <- NULL
+sp.data$temp_orvalho <- NULL
+sp.data$temp_orvalho_max <- NULL
+sp.data$temp_orvalho_min <- NULL
+sp.data$umidade_rel <- NULL
+sp.data$vento_dir <- NULL
+sp.data$vento_rajada <- NULL
+sp.data$vento_vel <- NULL
+sp.data$X <- NULL
+
+
+#edita datas
+rj.data$Data <- as.Date(rj.data$Data)
+rj.data$chuva <- as.numeric(rj.data$chuva)
+
+sp.data$Data <- as.Date(sp.data$Data)
+sp.data$chuva <- as.numeric(sp.data$chuva)
+
+
+#separa data em ano mes dia
+rj.data$mes<- month(rj.data$Data)
+sp.data$mes<- month(sp.data$Data)
+
+#tira os valores NA
+rj2 <- rj.data[complete.cases(rj.data$temp_ar), ]
+rj3 <- rj2[complete.cases(rj2$chuva), ]
+
+sp2 <- sp.data[complete.cases(sp.data$temp_ar), ]
+sp3 <- sp2[complete.cases(sp2$chuva), ]
+
+
+#faz a media por mes
+rj4 <- rj3 %>% group_by(mes) %>%
+  summarise(temp_ar =mean(temp_ar),
+            chuva = sum(chuva)/10)
+
+sp4 <- sp3 %>% group_by(mes) %>%
+  summarise(temp_ar =mean(temp_ar),
+            chuva = sum(chuva)/10)
+
+sp4$city = "SP"
+rj4$city = "RJ" 
+
+
+#coloca uma base embaixo da outra
+temperaturas <- rbind(sp4,rj4)
+
+#GRÁFICO FINAIS
+plot3 <- ggplot(data = temperaturas, aes(x=mes, y=temp_ar, group=city))+
+  geom_line(aes(color=city),size=3)+
+  ylab("Temperatura média")+
+  xlab("Mês")+
+  geom_point(color="red", size=3)+
+  labs(title="Temperaturas e chuvas em 2019")+
+  theme(plot.title = element_text(hjust = 0.5,size=16))+
+  scale_x_continuous(breaks = c(1,2,3,4,5,6,7,8,9,10,11,12))+
+  scale_y_continuous(breaks = c(15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,35))
+
+plot2 <- ggplot(data=temperaturas, aes(x=mes, y=chuva, fill=city)) +
+  geom_bar(stat='identity', position=position_dodge())+
+  ylab("Chuva (mm)") +
+  xlab("Mês")+
+  labs(caption="Fonte: Instituto Nacional de Meteorologia - INMET")+
+  scale_x_continuous(breaks = c(1,2,3,4,5,6,7,8,9,10,11,12))+
+  scale_y_continuous(breaks = c(0,100,200,300,400,500))
+grid.arrange(plot3,plot2, ncol=1)
